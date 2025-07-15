@@ -15,7 +15,7 @@ export const checkUser = async () => {
 
     if(loggedInUser) return loggedInUser;
 
-    const name = `${user.firstName} ${user.lastName}`.trim();
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
 
     const newUser = await db.user.create({
       data: {
@@ -33,5 +33,6 @@ export const checkUser = async () => {
     } else {
       console.error(error);
     }
+    return null;
   }
 }
