@@ -1,4 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma";
+
+declare global {
+  var prisma: PrismaClient | undefined; //TS error fix
+}
 
 export const db = globalThis.prisma || new PrismaClient();
 
