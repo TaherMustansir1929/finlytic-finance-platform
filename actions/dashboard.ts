@@ -4,21 +4,9 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-interface SerializableTransaction {
-  [key: string]: unknown;
-  balance?: number;
-  amount?: number;
-}
-
-interface TransactionLike {
-  [key: string]: any;
-  balance?: { toNumber: () => number };
-  amount?: { toNumber: () => number };
-}
-
-const serializeTransaction = (obj: TransactionLike): SerializableTransaction => {
+const serializeTransaction = (obj) => {
   const { balance, amount, ...rest } = obj;
-  const serialized: SerializableTransaction = { ...rest };
+  const serialized = { ...rest };
 
   if (balance) {
     serialized.balance = balance.toNumber();

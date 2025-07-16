@@ -4,21 +4,9 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-interface SerializableTransaction {
-  [key: string]: any;
-  balance?: number;
-  amount?: number;
-}
-
-interface TransactionLike {
-  [key: string]: any;
-  balance?: { toNumber: () => number };
-  amount?: { toNumber: () => number };
-}
-
-const serializeTransaction = (obj: TransactionLike): SerializableTransaction => {
+const serializeTransaction = (obj) => {
   const { balance, amount, ...rest } = obj;
-  const serialized: SerializableTransaction = { ...rest };
+  const serialized = { ...rest };
 
   if (balance) {
     serialized.balance = balance.toNumber();
@@ -54,8 +42,41 @@ export async function updateDefaultAccount(accountId: string) {
 
     revalidatePath("/dashboard");
 
-    return {success: true, account: serializeTransaction(account)};
+    return { success: true, account: serializeTransaction(account) };
   } catch (error) {
-    return {success : false, error: error instanceof Error ? error.message : String(error)};
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
+}
+
+export async function getAccountWithTransactions(accountId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+  });
+
+  if (!user) throw new Error("User not found");
+
+  const account = await db.account.findUnique({
+    where: { id: accountId, userId: user.id },
+    include: {
+      transactions: {
+        orderBy: { date: "desc" },
+      },
+      _count: {
+        select: { transactions: true },
+      },
+    },
+  });
+
+  if (!account) return null;
+
+  return {
+    ...serializeTransaction(account),
+    transactions: account.transactions.map(serializeTransaction),
+  };
 }
