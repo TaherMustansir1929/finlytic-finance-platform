@@ -5,12 +5,18 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 const serializeTransaction = (obj) => {
-  const serialize = {...obj };
+  const serialized = { ...obj };
 
   if (obj.balance) {
-    serialize.balance = obj.balance.toNumber();
+    serialized.balance = obj.balance.toNumber();
   }
-}
+
+  if (obj.amount) {
+    serialized.amount = obj.amount.toNumber();
+  }
+
+  return serialized;
+};
 
 export async function createAccount(data) {
   try {
@@ -55,8 +61,33 @@ export async function createAccount(data) {
     const serializeAccount = serializeTransaction(account);
 
     revalidatePath("/dashboard");
-    return {success: true, data: serializeAccount};
+    return { success: true, data: serializeAccount };
   } catch (error) {
     throw new Error(`Failed to create account: ${error.message}`);
   }
+}
+
+export async function getUserAccounts() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+  });
+
+  if (!user) throw new Error("User not found");
+
+  const accounts = await db.account.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: { transactions: true },
+      },
+    },
+  });
+
+  const serializedAccounts = accounts.map(serializeTransaction);
+
+  return serializedAccounts;
 }
