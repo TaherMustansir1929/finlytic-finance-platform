@@ -82,7 +82,7 @@ const AccountCard = ({ account }: { account: Account }) => {
             {type.charAt(0) + type.slice(1).toLowerCase()} Account
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-between text-sm text-muted-foreground">
           <div className="flex items-center">
             <ArrowUpRight className="mr-1 h-4 w-4 text-green-500" />
             Income
