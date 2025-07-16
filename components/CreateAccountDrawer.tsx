@@ -16,13 +16,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { accountSchema } from "@/app/_lib/schema";
 import { Input } from "./ui/input";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
+import useFetch from "@/hooks/use-fetch";
+import { createAccount } from "@/actions/dashboard";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const CreateAccountDrawer = ({ children }: { children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -44,7 +48,32 @@ const CreateAccountDrawer = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const onSubmit = async (data) => {}
+  const {
+    data: newAccount,
+    error,
+    loading: createAccountLoading,
+    fn: createAccountFn,
+  } = useFetch(createAccount);
+
+  useEffect(() => {
+    if(newAccount && !createAccountLoading) {
+      toast.success("Account created successfully!");
+      reset();
+      setOpen(false);
+    }
+  }, [createAccountLoading, newAccount]);
+
+  useEffect(() => {
+    if(error) {
+      toast.error(error.message || "Failed to create the account.");
+    }
+  }, [error])
+  
+  
+
+  const onSubmit = async (data) => {
+    await createAccountFn(data);
+  };
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -74,7 +103,9 @@ const CreateAccountDrawer = ({ children }: { children: React.ReactNode }) => {
                 Account Type
               </label>
               <Select
-                onValueChange={(value: "CURRENT" | "SAVINGS") => setValue("type", value)}
+                onValueChange={(value: "CURRENT" | "SAVINGS") =>
+                  setValue("type", value)
+                }
                 defaultValue={watch("type")}
               >
                 <SelectTrigger id="type">
@@ -128,10 +159,21 @@ const CreateAccountDrawer = ({ children }: { children: React.ReactNode }) => {
 
             <div className="flex gap-4 pt-4">
               <DrawerClose asChild>
-                <Button type="button" variant={"outline"} className="flex-1">Cancel</Button>
+                <Button type="button" variant={"outline"} className="flex-1">
+                  Cancel
+                </Button>
               </DrawerClose>
 
-              <Button type="submit" className="flex-1">Create Account</Button>
+              <Button type="submit" className="flex-1" disabled={createAccountLoading}>
+                {createAccountLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
             </div>
           </form>
         </div>
