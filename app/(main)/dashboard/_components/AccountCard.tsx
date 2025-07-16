@@ -1,5 +1,5 @@
-import z from "zod";
-import { accountSchema } from "@/app/_lib/schema";
+"use client";
+
 import {
   Card,
   CardContent,
@@ -10,13 +10,43 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import useFetch from "@/hooks/use-fetch";
+import { updateDefaultAccount } from "@/actions/accounts";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
-const AccountCard = ({
-  account,
-}: {
-  account: z.infer<typeof accountSchema>;
-}) => {
+const AccountCard = ({ account }: { account: any }) => {
   const { name, id, type, balance, isDefault } = account;
+
+  const {
+    data: updatedAccount,
+    loading: updateDefaultLoading,
+    error,
+    fn: updateDefaultFn,
+  } = useFetch(updateDefaultAccount);
+
+  const handleDefaultChange = async (e) => {
+    e.preventDefault();
+
+    if (isDefault) {
+      toast.warning("You need atleast one default account.");
+      return;
+    }
+
+    await updateDefaultFn(id);
+  }
+
+  useEffect(() => {
+    if(updatedAccount?.success){
+      toast.success("Default account updated successfully.");
+    }
+  }, [updateDefaultLoading, updatedAccount]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message || "Failed to update default account.");
+    }
+  }, [error]);  
 
   return (
     <Card className="hover:shadow-md transition-shadow group relative">
@@ -25,7 +55,7 @@ const AccountCard = ({
           <CardTitle className="text-sm font-medium capitalize">
             {name}
           </CardTitle>
-          <Switch checked={isDefault} />
+          <Switch checked={isDefault} onClick={handleDefaultChange} disabled={updateDefaultLoading} />
         </CardHeader>
         <CardContent>
           <div className="font-bold text-2xl">
