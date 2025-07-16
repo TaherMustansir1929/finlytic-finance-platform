@@ -1,6 +1,13 @@
-const DashboardPage = () => {
+function DashboardPage() {
   return (
-    <div>DashboardPage</div>
-  )
-}
-export default DashboardPage
+    <div className="px-5">
+      {/* Budget Progress */}
+
+      {/* Overview */}
+
+      {/* Accounts Grid */}
+      
+    </div>
+  );
+};
+export default DashboardPage;
