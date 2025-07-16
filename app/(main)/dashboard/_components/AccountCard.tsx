@@ -13,9 +13,17 @@ import Link from "next/link";
 import useFetch from "@/hooks/use-fetch";
 import { updateDefaultAccount } from "@/actions/accounts";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 
-const AccountCard = ({ account }: { account: any }) => {
+interface Account {
+  name: string;
+  id: string;
+  type: string;
+  balance: number | string;
+  isDefault: boolean;
+}
+
+const AccountCard = ({ account }: { account: Account }) => {
   const { name, id, type, balance, isDefault } = account;
 
   const {
@@ -23,9 +31,14 @@ const AccountCard = ({ account }: { account: any }) => {
     loading: updateDefaultLoading,
     error,
     fn: updateDefaultFn,
-  } = useFetch(updateDefaultAccount);
+  } = useFetch(updateDefaultAccount) as {
+    data: any;
+    loading: boolean;
+    error: { message?: string } | null;
+    fn: (id: string) => Promise<any>;
+  };
 
-  const handleDefaultChange = async (e) => {
+  const handleDefaultChange = async (e: React.MouseEvent) => {
     e.preventDefault();
 
     if (isDefault) {
@@ -34,10 +47,10 @@ const AccountCard = ({ account }: { account: any }) => {
     }
 
     await updateDefaultFn(id);
-  }
+  };
 
   useEffect(() => {
-    if(updatedAccount?.success){
+    if (updatedAccount?.success) {
       toast.success("Default account updated successfully.");
     }
   }, [updateDefaultLoading, updatedAccount]);
@@ -46,7 +59,7 @@ const AccountCard = ({ account }: { account: any }) => {
     if (error) {
       toast.error(error.message || "Failed to update default account.");
     }
-  }, [error]);  
+  }, [error]);
 
   return (
     <Card className="hover:shadow-md transition-shadow group relative">
@@ -55,11 +68,15 @@ const AccountCard = ({ account }: { account: any }) => {
           <CardTitle className="text-sm font-medium capitalize">
             {name}
           </CardTitle>
-          <Switch checked={isDefault} onClick={handleDefaultChange} disabled={updateDefaultLoading} />
+          <Switch
+            checked={isDefault}
+            onClick={handleDefaultChange}
+            disabled={updateDefaultLoading}
+          />
         </CardHeader>
         <CardContent>
           <div className="font-bold text-2xl">
-            Rs.{parseFloat(balance).toFixed(2)}
+            Rs.{parseFloat(String(balance)).toFixed(2)}
           </div>
           <div className="text-xs text-muted-foreground">
             {type.charAt(0) + type.slice(1).toLowerCase()} Account

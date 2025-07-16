@@ -4,15 +4,28 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-const serializeTransaction = (obj) => {
-  const serialized = { ...obj };
+interface SerializableTransaction {
+  [key: string]: any;
+  balance?: number;
+  amount?: number;
+}
 
-  if (obj.balance) {
-    serialized.balance = obj.balance.toNumber();
+interface TransactionLike {
+  [key: string]: any;
+  balance?: { toNumber: () => number };
+  amount?: { toNumber: () => number };
+}
+
+const serializeTransaction = (obj: TransactionLike): SerializableTransaction => {
+  const { balance, amount, ...rest } = obj;
+  const serialized: SerializableTransaction = { ...rest };
+
+  if (balance) {
+    serialized.balance = balance.toNumber();
   }
 
-  if (obj.amount) {
-    serialized.amount = obj.amount.toNumber();
+  if (amount) {
+    serialized.amount = amount.toNumber();
   }
 
   return serialized;
@@ -43,6 +56,6 @@ export async function updateDefaultAccount(accountId: string) {
 
     return {success: true, account: serializeTransaction(account)};
   } catch (error) {
-    return {success : false, error: error.message};
+    return {success : false, error: error instanceof Error ? error.message : String(error)};
   }
 }

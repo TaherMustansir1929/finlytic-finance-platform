@@ -4,21 +4,46 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-const serializeTransaction = (obj) => {
-  const serialized = { ...obj };
+interface SerializableTransaction {
+  [key: string]: unknown;
+  balance?: number;
+  amount?: number;
+}
 
-  if (obj.balance) {
-    serialized.balance = obj.balance.toNumber();
+interface TransactionLike {
+  [key: string]: any;
+  balance?: { toNumber: () => number };
+  amount?: { toNumber: () => number };
+}
+
+const serializeTransaction = (obj: TransactionLike): SerializableTransaction => {
+  const { balance, amount, ...rest } = obj;
+  const serialized: SerializableTransaction = { ...rest };
+
+  if (balance) {
+    serialized.balance = balance.toNumber();
   }
 
-  if (obj.amount) {
-    serialized.amount = obj.amount.toNumber();
+  if (amount) {
+    serialized.amount = amount.toNumber();
   }
 
   return serialized;
 };
 
-export async function createAccount(data) {
+interface CreateAccountData {
+  name: string;
+  balance: number | string;
+  isDefault?: boolean;
+  [key: string]: unknown;
+}
+
+interface CreateAccountResult {
+  success: boolean;
+  data: Record<string, any>;
+}
+
+export async function createAccount(data: CreateAccountData): Promise<CreateAccountResult> {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -30,7 +55,7 @@ export async function createAccount(data) {
     if (!user) throw new Error("User not found");
 
     // Convert balance to float before saving
-    const balanceFloat = parseFloat(data.balance);
+    const balanceFloat: number = parseFloat(data.balance as string);
     if (isNaN(balanceFloat)) throw new Error("Invalid balance amount");
 
     // Check if this is user's first account
@@ -38,8 +63,8 @@ export async function createAccount(data) {
       where: { userId: user.id },
     });
 
-    const shouldBeDefault =
-      existingAccounts.length === 0 ? true : data.isDefault;
+    const shouldBeDefault: boolean =
+      existingAccounts.length === 0 ? true : !!data.isDefault;
 
     //if this account is default, set all other accounts to not default
     if (shouldBeDefault) {
@@ -63,7 +88,11 @@ export async function createAccount(data) {
     revalidatePath("/dashboard");
     return { success: true, data: serializeAccount };
   } catch (error) {
-    throw new Error(`Failed to create account: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to create account: ${error.message}`);
+    } else {
+      throw new Error("Failed to create account: Unknown error");
+    }
   }
 }
 
